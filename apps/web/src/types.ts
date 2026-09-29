@@ -50,6 +50,8 @@ export interface Transcription {
   warnings: string[];
   /** Descripción en prosa continua para leer en voz alta o pasar a braille. */
   narrative: string;
+  /** Transcripción braille en formato ONCE (tokens en línea, 'Blancas:' / 'Negras:'). */
+  braille_block: string;
 }
 
 export interface ValidationIssue {

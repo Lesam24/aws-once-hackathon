@@ -181,3 +181,66 @@ def test_narrative_singular_plural_agreement():
     n = transcribe(one).narrative
     assert "1 pieza en total" in n
     assert "Sin piezas negras." in n
+
+
+# ---------------------------------------------------------------------------
+# Bloque braille en formato ONCE (tokens en línea)
+# ---------------------------------------------------------------------------
+
+
+def test_braille_block_inline_format():
+    t = transcribe(_king_board())
+    lines = t.braille_block.split("\n")
+    assert lines[0] == "Blancas: Re\u2802"
+    assert lines[1] == "Negras: Re\u2826"
+
+
+def test_braille_block_tokens_space_separated():
+    board = BoardState(
+        orientation=BoardOrientation.WHITE_AT_BOTTOM,
+        pieces=[
+            Piece(color=Color.WHITE, type=PieceType.KING, square="e1"),
+            Piece(color=Color.WHITE, type=PieceType.QUEEN, square="d1"),
+            Piece(color=Color.WHITE, type=PieceType.ROOK, square="a1"),
+        ],
+    )
+    block = transcribe(board).braille_block
+    # Rey, Dama, Torre en una sola línea separados por espacios.
+    assert block.startswith("Blancas: Re\u2802 Dd\u2802 Ta\u2802")
+
+
+def test_braille_block_highlights_described_apart():
+    board = BoardState(
+        orientation=BoardOrientation.WHITE_AT_BOTTOM,
+        pieces=[Piece(color=Color.WHITE, type=PieceType.KING, square="e1")],
+        highlights=[
+            Highlight(square="g3", color=HighlightColor.YELLOW),
+            Highlight(square="h4", color=HighlightColor.YELLOW),
+        ],
+    )
+    block = transcribe(board).braille_block
+    assert "Resaltadas en amarillo las casillas g\u2812 y h\u2832" in block
+
+
+def test_braille_block_single_highlight_singular():
+    board = BoardState(
+        orientation=BoardOrientation.WHITE_AT_BOTTOM,
+        pieces=[],
+        highlights=[Highlight(square="g3", color=HighlightColor.YELLOW)],
+    )
+    block = transcribe(board).braille_block
+    assert "Resaltadas en amarillo la casilla g\u2812" in block
+
+
+def test_braille_block_arrow_described():
+    board = BoardState(
+        orientation=BoardOrientation.WHITE_AT_BOTTOM,
+        pieces=[],
+        arrows=[Arrow(from_square="d4", to_square="d1", direction=ArrowDirection.FORWARD)],
+    )
+    block = transcribe(board).braille_block
+    assert "Flecha: d\u2832\u2812\u2815d\u2802" in block
+
+
+def test_braille_block_is_deterministic():
+    assert transcribe(DIAGRAM_1).braille_block == transcribe(DIAGRAM_1).braille_block

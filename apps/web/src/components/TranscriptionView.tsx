@@ -44,6 +44,7 @@ function LineList({
 export function TranscriptionView({ transcription, onAnnounce }: Props) {
   const [copied, setCopied] = useState(false);
   const [copiedNarrative, setCopiedNarrative] = useState(false);
+  const [copiedBraille, setCopiedBraille] = useState(false);
   const plain = transcriptionToPlainText(transcription);
 
   const copyText = async (
@@ -68,6 +69,34 @@ export function TranscriptionView({ transcription, onAnnounce }: Props) {
     <div className="transcription">
       {/* Resumen en prosa: lo primero que anuncia el lector de pantalla. */}
       <p className="transcription-summary">{transcriptionSummary(transcription)}</p>
+
+      {/* Bloque braille en formato ONCE: salida principal para línea braille. */}
+      {transcription.braille_block && (
+        <section aria-labelledby="heading-braille" className="braille-block">
+          <h3 id="heading-braille">
+            <span aria-hidden="true">⠿</span> Transcripción braille
+          </h3>
+          <pre className="braille-block__text" lang="und">
+            {transcription.braille_block}
+          </pre>
+          <div className="transcription-toolbar">
+            <button
+              type="button"
+              className="btn btn--primary"
+              onClick={() =>
+                copyText(
+                  transcription.braille_block,
+                  setCopiedBraille,
+                  "Transcripción braille"
+                )
+              }
+            >
+              <span aria-hidden="true">📋</span>{" "}
+              {copiedBraille ? "¡Copiada!" : "Copiar braille"}
+            </button>
+          </div>
+        </section>
+      )}
 
       {/* Descripción en prosa continua, apta para voz o braille. */}
       {transcription.narrative && (
@@ -109,8 +138,12 @@ export function TranscriptionView({ transcription, onAnnounce }: Props) {
         </button>
       </div>
 
-      <LineList title="Blancas" lines={transcription.white_lines} />
-      <LineList title="Negras" lines={transcription.black_lines} />
+      {/* Vista detallada por pieza (token + descripción), plegable. */}
+      <details className="token-detail">
+        <summary>Ver pieza por pieza con descripción</summary>
+        <LineList title="Blancas" lines={transcription.white_lines} />
+        <LineList title="Negras" lines={transcription.black_lines} />
+      </details>
 
       {transcription.highlights.length > 0 && (
         <section aria-labelledby="heading-highlights" className="transcription-group">

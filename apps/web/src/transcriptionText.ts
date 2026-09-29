@@ -2,31 +2,19 @@
 // (compatible con líneas braille) y en un resumen legible para lectores de pantalla.
 import type { Transcription } from "./types";
 
-/** Texto plano con los tokens braille, una línea por pieza. */
+/** Texto plano copiable: braille en formato ONCE + descripción en prosa. */
 export function transcriptionToPlainText(t: Transcription): string {
   const parts: string[] = [];
-  if (t.narrative) {
-    parts.push("Descripción:", t.narrative, "");
-  }
-  if (t.white_lines.length) {
-    parts.push("Blancas:");
-    parts.push(...t.white_lines.map((l) => l.text));
-  }
-  if (t.black_lines.length) {
-    parts.push("", "Negras:");
-    parts.push(...t.black_lines.map((l) => l.text));
-  }
-  if (t.highlights.length) {
-    parts.push("", "Resaltadas:");
-    parts.push(...t.highlights);
-  }
-  if (t.arrows.length) {
-    parts.push("", "Flechas:");
-    parts.push(...t.arrows);
+  // El bloque braille en formato ONCE es la salida principal.
+  if (t.braille_block) {
+    parts.push(t.braille_block);
   }
   if (t.warnings.length) {
     parts.push("", "Avisos:");
     parts.push(...t.warnings);
+  }
+  if (t.narrative) {
+    parts.push("", "Descripción:", t.narrative);
   }
   return parts.join("\n");
 }

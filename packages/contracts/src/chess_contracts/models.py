@@ -199,6 +199,14 @@ class Transcription(_Base):
             "alta o pasarse a braille. Ej.: 'Piezas blancas: rey en e1, dama en d1. …'"
         ),
     )
+    braille_block: str = Field(
+        "",
+        description=(
+            "Transcripción braille en el formato oficial de la ONCE: tokens en línea "
+            "separados por espacios, con 'Blancas:' / 'Negras:' y las casillas resaltadas "
+            "y flechas descritas aparte. Es la salida principal para línea braille."
+        ),
+    )
 
     def as_text(self) -> str:
         """Renderiza la transcripción como texto lineal (una línea por token)."""

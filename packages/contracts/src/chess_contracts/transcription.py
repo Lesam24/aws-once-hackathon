@@ -33,7 +33,12 @@ from .spec import (
     PieceType,
 )
 
-__all__ = ["transcribe", "TranscriptionOptions", "build_narrative"]
+__all__ = [
+    "transcribe",
+    "TranscriptionOptions",
+    "build_narrative",
+    "build_braille_block",
+]
 
 #: Descripción legible de cada tipo de pieza (para lectores de pantalla).
 _PIECE_READABLE = {
@@ -97,6 +102,57 @@ def _highlight_repr(h: Highlight) -> str:
 def _arrow_repr(a: Arrow) -> str:
     symbol = ARROW_SYMBOL[a.direction]
     return f"{square_to_braille(a.from_square)}{symbol}{square_to_braille(a.to_square)}"
+
+
+def _square_braille(square: str) -> str:
+    """Casilla en braille: columna latina + fila braille. Ej.: 'g3' -> 'g⠒'."""
+    return square_to_braille(square)
+
+
+def build_braille_block(
+    white_lines: list[TranscriptionLine],
+    black_lines: list[TranscriptionLine],
+    board: BoardState,
+) -> str:
+    """Genera la transcripción braille en el formato oficial de la ONCE.
+
+    Tokens en línea separados por espacios, precedidos por 'Blancas:' y 'Negras:'.
+    Las casillas resaltadas y las flechas se describen aparte, como indica la
+    especificación. Determinista: misma entrada, misma salida.
+
+    Ejemplo:
+        Blancas: Re⠂ Dd⠂ Ta⠂ Th⠂ ...
+        Negras: Re⠦ Dd⠦ Ta⠦ Th⠦ ...
+        Resaltadas en amarillo las casillas g⠒ y h⠲
+    """
+    parts: list[str] = []
+
+    if white_lines:
+        parts.append("Blancas: " + " ".join(line.text for line in white_lines))
+    if black_lines:
+        parts.append("Negras: " + " ".join(line.text for line in black_lines))
+
+    # Casillas resaltadas, agrupadas por color, descritas por separado.
+    for color_value, color_word in (("yellow", "amarillo"), ("red", "rojo")):
+        squares = [
+            _square_braille(h.square)
+            for h in board.highlights
+            if h.color.value == color_value
+        ]
+        if squares:
+            noun = "la casilla" if len(squares) == 1 else "las casillas"
+            parts.append(
+                f"Resaltadas en {color_word} {noun} {_join_natural(squares)}"
+            )
+
+    # Flechas entre casillas, con su símbolo direccional.
+    for a in board.arrows:
+        parts.append(
+            f"Flecha: {_square_braille(a.from_square)}"
+            f"{ARROW_SYMBOL[a.direction]}{_square_braille(a.to_square)}"
+        )
+
+    return "\n".join(parts)
 
 
 #: Descripción legible de la casilla, deletreada para voz ("e uno" en lugar de "e1").
@@ -211,6 +267,7 @@ def transcribe(
         )
 
     narrative = build_narrative(board, white_sorted, black_sorted, warnings)
+    braille_block = build_braille_block(white_lines, black_lines, board)
 
     return Transcription(
         white_lines=white_lines,
@@ -219,4 +276,5 @@ def transcribe(
         arrows=arrows,
         warnings=warnings,
         narrative=narrative,
+        braille_block=braille_block,
     )
