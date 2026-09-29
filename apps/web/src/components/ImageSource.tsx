@@ -72,15 +72,30 @@ export function ImageSource({ onImageSelected, onAnnounce, disabled }: Props) {
       return;
     }
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "environment" },
-        audio: false,
-      });
-      streamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        await videoRef.current.play().catch(() => undefined);
+      let stream: MediaStream;
+      try {
+        // Preferimos la cámara trasera ("ideal", no obligatoria) para no fallar
+        // en equipos que solo tienen webcam frontal (evita OverconstrainedError).
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { ideal: "environment" } },
+          audio: false,
+        });
+      } catch (inner) {
+        const nm = inner instanceof DOMException ? inner.name : "";
+        if (nm === "OverconstrainedError" || nm === "ConstraintNotSatisfiedError") {
+          // Reintento con cualquier cámara disponible.
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: true,
+            audio: false,
+          });
+        } else {
+          throw inner;
+        }
       }
+      streamRef.current = stream;
+      // NO conectamos el stream al <video> aquí: el elemento aún no existe en
+      // el DOM (solo se renderiza cuando cameraActive === true). La conexión se
+      // hace en el useEffect de abajo, una vez el <video> está montado.
       setCameraActive(true);
       onAnnounce(
         "Cámara activada. Encuadra el tablero y pulsa Capturar foto."
@@ -92,18 +107,42 @@ export function ImageSource({ onImageSelected, onAnnounce, disabled }: Props) {
           ? "Permiso de cámara denegado. Puedes subir un archivo en su lugar."
           : name === "NotFoundError"
             ? "No se ha encontrado ninguna cámara. Sube un archivo en su lugar."
-            : "No se pudo acceder a la cámara. Sube un archivo en su lugar.";
+            : name === "NotReadableError"
+              ? "La cámara está en uso por otra aplicación. Ciérrala e inténtalo de nuevo."
+              : "No se pudo acceder a la cámara. Sube un archivo en su lugar.";
+      // Si falló tras obtener el stream, libéralo para no dejar la cámara abierta.
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((t) => t.stop());
+        streamRef.current = null;
+      }
       onAnnounce(msg, "error");
       setTab("upload");
     }
   }, [cameraSupported, onAnnounce]);
 
+  // Conecta el stream al elemento <video> una vez que está montado en el DOM.
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!cameraActive || !video || !streamRef.current) return;
+    video.srcObject = streamRef.current;
+    // play() puede rechazar (autoplay policies); lo ignoramos con seguridad.
+    void video.play().catch(() => undefined);
+  }, [cameraActive]);
+
   const capturePhoto = useCallback(() => {
     const video = videoRef.current;
     if (!video) return;
+    // El vídeo aún puede no tener dimensiones si los metadatos no han cargado.
+    if (!video.videoWidth || !video.videoHeight) {
+      onAnnounce(
+        "La cámara todavía se está iniciando. Espera un momento e inténtalo de nuevo.",
+        "error"
+      );
+      return;
+    }
     const canvas = document.createElement("canvas");
-    canvas.width = video.videoWidth || 640;
-    canvas.height = video.videoHeight || 480;
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
