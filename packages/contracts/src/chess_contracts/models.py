@@ -192,6 +192,13 @@ class Transcription(_Base):
     highlights: list[str] = Field(default_factory=list)
     arrows: list[str] = Field(default_factory=list)
     warnings: list[str] = Field(default_factory=list)
+    narrative: str = Field(
+        "",
+        description=(
+            "Descripción en prosa continua (con comas y puntos) apta para leerse en voz "
+            "alta o pasarse a braille. Ej.: 'Piezas blancas: rey en e1, dama en d1. …'"
+        ),
+    )
 
     def as_text(self) -> str:
         """Renderiza la transcripción como texto lineal (una línea por token)."""

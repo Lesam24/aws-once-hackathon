@@ -48,6 +48,8 @@ export interface Transcription {
   highlights: string[];
   arrows: string[];
   warnings: string[];
+  /** Descripción en prosa continua para leer en voz alta o pasar a braille. */
+  narrative: string;
 }
 
 export interface ValidationIssue {

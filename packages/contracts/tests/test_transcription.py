@@ -94,3 +94,90 @@ def test_all_diagrams_transcribe_without_error():
     for board in (DIAGRAM_1, DIAGRAM_2, DIAGRAM_23):
         t = transcribe(board)
         assert t.white_lines and t.black_lines
+
+
+# ---------------------------------------------------------------------------
+# Narrativa en prosa (para voz / braille)
+# ---------------------------------------------------------------------------
+
+
+def test_narrative_is_present_and_nonempty():
+    t = transcribe(DIAGRAM_1)
+    assert t.narrative
+    assert isinstance(t.narrative, str)
+
+
+def test_narrative_has_sentence_structure():
+    t = transcribe(_king_board())
+    n = t.narrative
+    # puntuación de prosa: puntos y comas
+    assert "." in n
+    # encabezado con recuento
+    assert "2 piezas en total" in n
+    assert "1 blanca" in n and "1 negra" in n
+
+
+def test_narrative_describes_pieces_readably():
+    t = transcribe(_king_board())
+    n = t.narrative
+    assert "Piezas blancas: rey en e 1." in n
+    assert "Piezas negras: rey en e 8." in n
+
+
+def test_narrative_orientation_phrase():
+    assert "blancas en la parte inferior" in transcribe(DIAGRAM_1).narrative
+    unknown = BoardState(orientation=BoardOrientation.UNKNOWN, pieces=[])
+    assert "orientación no determinada" in transcribe(unknown).narrative
+
+
+def test_narrative_natural_join_uses_commas_and_conjunction():
+    board = BoardState(
+        orientation=BoardOrientation.WHITE_AT_BOTTOM,
+        pieces=[
+            Piece(color=Color.WHITE, type=PieceType.KING, square="e1"),
+            Piece(color=Color.WHITE, type=PieceType.ROOK, square="a1"),
+            Piece(color=Color.WHITE, type=PieceType.ROOK, square="h1"),
+        ],
+    )
+    n = transcribe(board).narrative
+    # tres piezas -> "..., ... y ..."
+    assert ", " in n
+    assert " y " in n
+
+
+def test_narrative_includes_highlights_and_arrows():
+    board = BoardState(
+        orientation=BoardOrientation.WHITE_AT_BOTTOM,
+        pieces=[],
+        highlights=[Highlight(square="g3", color=HighlightColor.YELLOW)],
+        arrows=[Arrow(from_square="d4", to_square="d1", direction=ArrowDirection.FORWARD)],
+    )
+    n = transcribe(board).narrative
+    assert "resaltadas" in n.lower()
+    assert "amarillo" in n
+    assert "Flechas:" in n
+    assert "de d 4 a d 1" in n
+
+
+def test_narrative_includes_warnings():
+    board = BoardState(
+        orientation=BoardOrientation.WHITE_AT_BOTTOM,
+        pieces=[Piece(color=Color.WHITE, type=PieceType.QUEEN, square="d1", confidence=0.3)],
+    )
+    n = transcribe(board).narrative
+    assert "Avisos:" in n
+    assert "incierta" in n
+
+
+def test_narrative_is_deterministic():
+    assert transcribe(DIAGRAM_23).narrative == transcribe(DIAGRAM_23).narrative
+
+
+def test_narrative_singular_plural_agreement():
+    one = BoardState(
+        orientation=BoardOrientation.WHITE_AT_BOTTOM,
+        pieces=[Piece(color=Color.WHITE, type=PieceType.KING, square="e1")],
+    )
+    n = transcribe(one).narrative
+    assert "1 pieza en total" in n
+    assert "Sin piezas negras." in n

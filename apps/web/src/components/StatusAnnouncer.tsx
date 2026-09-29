@@ -4,9 +4,10 @@
 interface Props {
   message: string;
   tone?: "info" | "error";
+  busy?: boolean;
 }
 
-export function StatusAnnouncer({ message, tone = "info" }: Props) {
+export function StatusAnnouncer({ message, tone = "info", busy = false }: Props) {
   if (!message) {
     // Mantener el nodo live en el DOM para que los cambios se anuncien.
     return (
@@ -25,9 +26,18 @@ export function StatusAnnouncer({ message, tone = "info" }: Props) {
       aria-atomic="true"
       className={`status status--${tone}`}
     >
-      {/* Prefijo textual para no depender solo del color. */}
-      <strong>{tone === "error" ? "Error: " : "Estado: "}</strong>
-      {message}
+      {busy && tone !== "error" ? (
+        <span className="spinner spinner--inline" aria-hidden="true" />
+      ) : (
+        <span aria-hidden="true" className="status__icon">
+          {tone === "error" ? "⚠️" : "ℹ️"}
+        </span>
+      )}
+      {/* Prefijo textual para no depender solo del color/icono. */}
+      <span>
+        <strong>{tone === "error" ? "Error: " : "Estado: "}</strong>
+        {message}
+      </span>
     </div>
   );
 }
