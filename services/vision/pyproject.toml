@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "chess-vision"
+version = "0.1.0"
+description = "Hybrid vision pipeline (preprocess -> detect -> rectify -> segment -> recognize) with a pluggable piece recognizer."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "chess-contracts",
+]
+
+[project.optional-dependencies]
+# OpenCV / numpy are optional: the pipeline runs end-to-end with a deterministic
+# stub recognizer even when these are not installed. Install for real image work.
+cv = [
+    "numpy>=1.26",
+    "opencv-python-headless>=4.9",
+]
+dev = [
+    "pytest>=8",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]

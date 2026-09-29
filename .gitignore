@@ -1,0 +1,18 @@
+# Python
+.venv/
+__pycache__/
+*.egg-info/
+.pytest_cache/
+build/
+dist/
+
+# Node / frontend
+node_modules/
+apps/web/dist/
+
+# Env
+.env
+
+# Datasets (grandes / privados)
+data/raw/
+data/curated/

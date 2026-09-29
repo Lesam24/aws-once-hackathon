@@ -1,0 +1,37 @@
+# Puesta en marcha local del MVP.
+# Uso:  docker compose -f infra/docker-compose.yml up --build
+services:
+  api:
+    build:
+      context: ..
+      dockerfile: infra/api.Dockerfile
+    environment:
+      CHESS_STORAGE_BACKEND: memory
+      CHESS_LOG_LEVEL: INFO
+    ports:
+      - "8000:8000"
+
+  web:
+    build:
+      context: ..
+      dockerfile: infra/web.Dockerfile
+    depends_on:
+      - api
+    ports:
+      - "5173:80"
+
+  # Preparado para cuando la persistencia pase a Postgres (storage_backend=postgres).
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: chess
+      POSTGRES_PASSWORD: chess
+      POSTGRES_DB: chess
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    profiles: ["postgres"]
+
+volumes:
+  pgdata:
